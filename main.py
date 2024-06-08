@@ -73,9 +73,14 @@ def on_window_move(i3, e):
     current_ws = find_ws_by_id(i3, win.id)
     if current_ws is not None:
         logging.debug(f'window {win.id} moved to workspace {current_ws.name}')
-        rename_ws(i3,
-                  OldValues(current_ws.name, current_ws.num),
-                  make_ws_name(current_ws.num, win.window_class))
+        if win.window_class is not None:
+            rename_ws(i3,
+                      OldValues(current_ws.name, current_ws.num),
+                      make_ws_name(current_ws.num, win.window_class))
+        else:
+            rename_ws(i3,
+                      OldValues(current_ws.name, current_ws.num),
+                      current_ws.num)
 
 
 def find_ws_by_id(i3, id):
