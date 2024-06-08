@@ -2,12 +2,14 @@ from i3ipc import Connection, Event
 import logging
 
 
+# Encapsulate workspace's old values
 class OldValues:
     def __init__(self, name, num):
         self.name = name
         self.num = num
 
 
+# Make bold name using pango markup
 def make_ws_name(ws_num, ws_name):
     return f'{ws_num}:<b>{ws_name}</b>'
 
@@ -53,6 +55,7 @@ def on_window_focus(i3, e):
 def on_workspace_empty(i3, e):
     current_ws = e.current
     logging.debug(f'workspace {current_ws.name} emptied')
+    # Use workspace number as new name if workspace is emptied (last window on workspace is closed)
     rename_ws(i3,
               OldValues(current_ws.name, current_ws.num),
               current_ws.num)
@@ -61,6 +64,7 @@ def on_workspace_empty(i3, e):
 def on_window_new(i3, e):
     win = e.container
     current_ws = find_ws_by_id(i3, win.id)
+    # Rename workspace to new window's class even if not focused
     if current_ws is not None:
         logging.debug(f'new window {win.window_title} spawned')
         rename_ws(i3,
@@ -73,6 +77,7 @@ def on_window_move(i3, e):
     current_ws = find_ws_by_id(i3, win.id)
     if current_ws is not None:
         logging.debug(f'window {win.id} moved to workspace {current_ws.name}')
+        # Use workspace number as new name if window's class is unspecified
         if win.window_class is not None:
             rename_ws(i3,
                       OldValues(current_ws.name, current_ws.num),
@@ -83,7 +88,10 @@ def on_window_move(i3, e):
                       current_ws.num)
 
 
+# Use a window's id to find its containing workspace
 def find_ws_by_id(i3, id):
+    # Unfortunately, the i3 ipc protocol doesn't allow finding a container's parent directly,
+    # hence this iterative approach
     for output in i3.get_tree().root().nodes:
         if output.find_by_id(id) is not None:
             content = output.nodes[1]
@@ -95,7 +103,9 @@ def find_ws_by_id(i3, id):
     return None
 
 
+# Find the workspace of the currently focused window
 def find_focused_ws(i3):
+    # Same approach as find_ws_by_id function
     for output in i3.get_tree().root().nodes:
         if output.find_focused() is not None:
             content = output.nodes[1]
@@ -109,6 +119,7 @@ def find_focused_ws(i3):
 
 def main():
     i3 = Connection()
+    # Rename focused workspace on script launch
     current_ws = find_focused_ws(i3)
     if current_ws is not None:
         focused = current_ws.find_focused()
